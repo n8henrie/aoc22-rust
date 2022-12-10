@@ -1,0 +1,11 @@
+[package]
+name = "aoc"
+version = "0.1.0"
+edition = "2021"
+description = "Utility functions and macros for reuse in AoC 2022"
+
+[dependencies]
+anyhow = "1"
+
+[dev-dependencies]
+tempfile = "3"
