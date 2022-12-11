@@ -29,13 +29,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
-name = "d"
-version = "0.1.0"
-dependencies = [
- "aoc",
-]
-
-[[package]]
 name = "d01"
 version = "0.1.0"
 dependencies = [
@@ -52,6 +45,20 @@ dependencies = [
 
 [[package]]
 name = "d03"
+version = "0.1.0"
+dependencies = [
+ "aoc",
+]
+
+[[package]]
+name = "d04"
+version = "0.1.0"
+dependencies = [
+ "aoc",
+]
+
+[[package]]
+name = "d05"
 version = "0.1.0"
 dependencies = [
  "aoc",
