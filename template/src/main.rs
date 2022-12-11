@@ -22,16 +22,16 @@ fn main() -> Result<()> {
 mod tests {
     use super::*;
 
-    static EXAMPLE_INPUT: &str = "\
-";
+    static EXAMPLE_INPUT: &str = r#"
+"#;
 
     #[test]
     fn test_part1() {
-        //
+        assert!(false);
     }
 
     #[test]
     fn test_part2() {
-        //
+        assert!(false);
     }
 }
