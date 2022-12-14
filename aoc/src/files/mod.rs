@@ -19,7 +19,7 @@ macro_rules! localpath {
 }
 
 /// Parse input into a vec of specified type, or default to `Vec<String>`.
-/// Test out a link to [parse_input].
+/// Test out a link to [parse_input!][crate::parse_input!].
 /// ```rust
 /// use aoc::parse_input;
 /// assert_eq!(parse_input!("42\n24", u32).unwrap(), vec![42_u32, 24]);
