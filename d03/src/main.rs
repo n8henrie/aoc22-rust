@@ -110,8 +110,8 @@ CrZsJsPPZsGzwwsLwLmpwMDw
         let r: RuckSack =
             EXAMPLE_INPUT.lines().next().unwrap().parse().unwrap();
         let expected = RuckSack(
-            HashSet::from_iter("vJrwpWtwJgWr".chars()),
-            HashSet::from_iter("hcsFMMfFFhFp".chars()),
+            "vJrwpWtwJgWr".chars().collect(),
+            "hcsFMMfFFhFp".chars().collect(),
         );
         assert_eq!(r, expected);
     }
@@ -119,10 +119,10 @@ CrZsJsPPZsGzwwsLwLmpwMDw
     #[test]
     fn test_score_ruckscack() {
         let r = RuckSack(
-            HashSet::from_iter("vJrwpWtwJgWr".chars()),
-            HashSet::from_iter("hcsFMMfFFhFp".chars()),
+            "vJrwpWtwJgWr".chars().collect(),
+            "hcsFMMfFFhFp".chars().collect(),
         );
-        let common: ItemSet = r.in_common().cloned().collect();
+        let common: ItemSet = r.in_common().copied().collect();
         assert_eq!(common, ItemSet::from(['p']));
         assert_eq!(r.score().unwrap(), 16);
     }
