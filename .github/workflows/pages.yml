@@ -6,6 +6,9 @@ on:
       - master
       - dev
 
+permissions:
+  pages: write
+
 jobs:
   deploy:
     if: github.ref == 'refs/heads/master'
