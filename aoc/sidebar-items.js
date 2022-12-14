@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"macro":[["err",""],["localpath","Return a path to the input, starting at `CARGO_MANIFEST_DIR` of the caller, in a way that compiles the result into the final binary."],["parse_input","Parse input into a vec of specified type, or default to `Vec<String>`. Test out a link to [parse_input!][crate::parse_input!]."]],"mod":[["errors",""],["files",""]]};

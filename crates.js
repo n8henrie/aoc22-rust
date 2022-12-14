@@ -1,0 +1,1 @@
+window.ALL_CRATES = ["aoc","d01","d02","d03","d04","d05","d06"];

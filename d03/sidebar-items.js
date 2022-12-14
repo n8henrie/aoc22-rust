@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":[["INPUT",""]],"fn":[["main",""],["part1",""],["part2",""]],"struct":[["RuckSack",""]],"type":[["ItemSet",""],["ItemType",""]]};

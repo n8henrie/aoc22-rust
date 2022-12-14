@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":[["INPUT",""]],"enum":[["Move",""],["Outcome",""]],"fn":[["main",""],["part1",""],["part2",""]],"struct":[["Game",""]]};

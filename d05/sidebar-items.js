@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"constant":[["INPUT",""]],"fn":[["main",""],["parse_input",""],["part1",""],["part2",""]],"struct":[["Instruction",""],["Ship",""],["Stack",""]],"type":[["Crate",""]]};
