@@ -1,8 +1,11 @@
 ---
-name: Pages
-on: push
+name: Documentation
+on:
+  push:
+  pull_request:
 
 jobs:
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -18,7 +21,12 @@ jobs:
         env:
           RUSTDOCFLAGS: --enable-index-page -Zunstable-options
           RUSTUP_TOOLCHAIN: nightly
-        run: cargo doc --workspace --no-deps
+        run: |
+          cargo doc \
+            --no-deps \
+            --document-private-items \
+            --all-features \
+            --workspace
       - name: Upload artifact to Pages
         uses: actions/upload-pages-artifact@v1
         with:
