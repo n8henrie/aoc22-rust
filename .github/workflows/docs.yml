@@ -17,10 +17,9 @@ jobs:
         with:
           components: rustfmt, rust-src, clippy
       - name: Build Documentation
-        # Needed for `enable-index-page` for workspace
         env:
-          RUSTDOCFLAGS: --enable-index-page -Zunstable-options -D warnings
           RUSTUP_TOOLCHAIN: nightly
+          RUSTDOCFLAGS: -D warnings -Zunstable-options --enable-index-page
         run: |
           cargo doc \
             --no-deps \
