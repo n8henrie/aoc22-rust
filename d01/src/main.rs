@@ -6,20 +6,19 @@ type ElfMap = HashMap<usize, u32>;
 static INPUT: &str = include_str!("../input.txt");
 
 fn parse_input(input: &str) -> anyhow::Result<ElfMap> {
-    input.split("\n\n").enumerate().fold(
-        Ok(HashMap::new()),
-        |hm, (idx, elem)| {
+    input
+        .split("\n\n")
+        .enumerate()
+        .fold(Ok(HashMap::new()), |hm, (idx, elem)| {
             let mut hm = hm?;
             hm.insert(
                 idx,
-                elem.lines()
-                    .fold(Ok::<_, anyhow::Error>(0), |acc, line| {
-                        Ok(acc? + line.parse::<u32>()?)
-                    })?,
+                elem.lines().fold(Ok::<_, anyhow::Error>(0), |acc, line| {
+                    Ok(acc? + line.parse::<u32>()?)
+                })?,
             );
             Ok(hm)
-        },
-    )
+        })
 }
 
 // 70764
@@ -80,10 +79,7 @@ mod tests {
 
     #[test]
     fn test_part1() {
-        assert_eq!(
-            part1(&parse_input(EXAMPLE_INPUT).unwrap()).unwrap(),
-            24000
-        );
+        assert_eq!(part1(&parse_input(EXAMPLE_INPUT).unwrap()).unwrap(), 24000);
     }
 
     #[test]

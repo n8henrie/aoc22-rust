@@ -53,13 +53,9 @@ impl Game {
         match self {
             Game(a, b) if a == b => Tie,
 
-            Game(Rock, Paper)
-            | Game(Paper, Scissors)
-            | Game(Scissors, Rock) => Win,
+            Game(Rock, Paper) | Game(Paper, Scissors) | Game(Scissors, Rock) => Win,
 
-            Game(Paper, Rock)
-            | Game(Scissors, Paper)
-            | Game(Rock, Scissors) => Loss,
+            Game(Paper, Rock) | Game(Scissors, Paper) | Game(Rock, Scissors) => Loss,
 
             _ => unreachable!("logic error"),
         }

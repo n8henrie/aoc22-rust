@@ -56,17 +56,14 @@ fn part1(input: &str) -> Result<u32> {
 }
 
 fn part2(input: &str) -> Result<u32> {
-    let itemsets: Vec<ItemSet> =
-        input.lines().map(|line| line.chars().collect()).collect();
+    let itemsets: Vec<ItemSet> = input.lines().map(|line| line.chars().collect()).collect();
     let badges = itemsets
         .chunks_exact(3)
         .map(|chunk| {
             let badge_candidates = chunk
                 .iter()
                 .cloned()
-                .reduce(|acc, itemset| {
-                    acc.intersection(&itemset).copied().collect()
-                })
+                .reduce(|acc, itemset| acc.intersection(&itemset).copied().collect())
                 .ok_or_else(|| err!("reduce was empty"))?;
             let len = badge_candidates.len();
             if len != 1 {
@@ -107,8 +104,7 @@ CrZsJsPPZsGzwwsLwLmpwMDw
 
     #[test]
     fn test_make_rucksack() {
-        let r: RuckSack =
-            EXAMPLE_INPUT.lines().next().unwrap().parse().unwrap();
+        let r: RuckSack = EXAMPLE_INPUT.lines().next().unwrap().parse().unwrap();
         let expected = RuckSack(
             "vJrwpWtwJgWr".chars().collect(),
             "hcsFMMfFFhFp".chars().collect(),

@@ -24,8 +24,7 @@ impl FromStr for Ship {
     type Err = Error;
 
     fn from_str(s: &str) -> result::Result<Self, Self::Err> {
-        let mut lines: Vec<_> =
-            s.lines().filter(|line| !line.trim().is_empty()).collect();
+        let mut lines: Vec<_> = s.lines().filter(|line| !line.trim().is_empty()).collect();
 
         let Some(last_line) = lines.pop() else {
             return Err(err!("no last line: {:?}", lines));
@@ -49,9 +48,7 @@ impl FromStr for Ship {
                 {
                     [c] => stacks[idx].0.push(*c),
                     [] => continue,
-                    _ => {
-                        return Err(err!("could not parse chunk: {:?}", chunk))
-                    }
+                    _ => return Err(err!("could not parse chunk: {:?}", chunk)),
                 }
             }
         }
@@ -102,11 +99,7 @@ fn part2(ship: &mut Ship, instructions: &[Instruction]) -> Result<String> {
         let len = ship.0[from].0.len();
 
         if ship.0[from].0.get(len - mv..).is_none() {
-            return Err(err!(
-                "not enough crates in {} (tried to get {})",
-                from,
-                mv
-            ));
+            return Err(err!("not enough crates in {} (tried to get {})", from, mv));
         }
         let crates: Vec<_> = ship.0[from].0.drain(len - mv..).collect();
         ship.0[to].0.extend(crates);

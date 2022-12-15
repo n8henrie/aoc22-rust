@@ -81,8 +81,7 @@ mod tests {
 
     #[test]
     fn test_parse_elfpair() {
-        let elfpair: ElfPair =
-            EXAMPLE_INPUT.lines().next().unwrap().parse().unwrap();
+        let elfpair: ElfPair = EXAMPLE_INPUT.lines().next().unwrap().parse().unwrap();
         let expected = ElfPair(
             Section([2_usize, 3, 4].into_iter().collect()),
             Section([6_usize, 7, 8].into_iter().collect()),

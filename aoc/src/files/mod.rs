@@ -49,16 +49,14 @@ macro_rules! parse_input {
         BufReader::new(input)
             .lines()
             .map(|bufline| {
-                anyhow::Context::context(
-                    bufline,
-                    "error iterating over bufreader",
+                anyhow::Context::context(bufline, "error iterating over bufreader").and_then(
+                    |line| {
+                        anyhow::Context::context(
+                            line.parse::<$ty>().map_err(|e| anyhow::anyhow!(e)),
+                            "Unable to parse as type",
+                        )
+                    },
                 )
-                .and_then(|line| {
-                    anyhow::Context::context(
-                        line.parse::<$ty>().map_err(|e| anyhow::anyhow!(e)),
-                        "Unable to parse as type",
-                    )
-                })
             })
             .collect::<anyhow::Result<Vec<_>>>()
     }};
@@ -97,8 +95,7 @@ mod tests {
     fn test_read_to_string() {
         let mut tmpfile = tempfile::NamedTempFile::new().unwrap();
         write!(tmpfile, "123\n456").unwrap();
-        let expected: Vec<String> =
-            ["123", "456"].into_iter().map(Into::into).collect();
+        let expected: Vec<String> = ["123", "456"].into_iter().map(Into::into).collect();
         let result = parse_input!(tmpfile.path()).unwrap();
         assert_eq!(expected, result);
     }
