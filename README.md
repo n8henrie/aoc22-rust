@@ -27,7 +27,44 @@ Time will tell.
 
 ## Other AoC '22 in Rust repos:
 
+I'm going to split these into separate sections for beginners and
+non-beginners, as learners like myself might want to compare and contrast
+approaches.
+
+You might also consider exploring a few using the GitHub API:
+
+```console
+$ gh api \
+    -X GET search/repositories \
+    --paginate \
+    -f q='language:rust "advent of code"' \
+    -f sort=stars \
+    --jq '.items[] | .html_url'
+https://github.com/warycat/rustgym
+https://github.com/BurntSushi/advent-of-code
+https://github.com/fspoettel/advent-of-code-rust
+https://github.com/timvisee/advent-of-code-2021
+https://github.com/scarvalhojr/aoc-cli
+https://github.com/timvisee/advent-of-code-2020
+https://github.com/simonw/advent-of-code-2022-in-rust
+https://github.com/timvisee/advent-of-code-2022
+https://github.com/aldanor/aoc-2021
+https://github.com/AxlLind/AdventOfCode2021
+...
+```
+
+### Intermediate / Advanced
+
 - TBD
+
+### Beginner level
+
+These are repos from users that have self-identified as beging Rust novices /
+learners / beginners. If you're on this list and take offense or think you
+belong above, please let me know in an issue!
+
+- <https://github.com/acehinnnqru/aoc-2022>
+- <https://github.com/mario-hess/rust_advent_of_code_2022>
 
 [0]: https://github.com/n8henrie/advent2018-rust
 [1]: https://github.com/n8henrie/aoc21-rust
