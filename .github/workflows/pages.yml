@@ -22,6 +22,10 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v2
+      - name: check files
+        run: |
+          set -x
+          ls -lA
       - name: Upload artifact to Pages
         uses: actions/upload-pages-artifact@v1
         with:
