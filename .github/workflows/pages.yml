@@ -14,10 +14,11 @@ jobs:
         with:
           components: rustfmt, rust-src, clippy
       - name: Build Documentation
-        run: |
-          # Needed for `enable-index-page` for workspace
-          RUSTDOCFLAGS="--enable-index-page -Zunstable-options" RUSTUP_TOOLCHAIN=nightly \
-            cargo doc --workspace --no-deps
+        # Needed for `enable-index-page` for workspace
+        env:
+          RUSTDOCFLAGS: --enable-index-page -Zunstable-options
+          RUSTUP_TOOLCHAIN: nightly
+        run: cargo doc --workspace --no-deps
       - name: Upload artifact to Pages
         uses: actions/upload-pages-artifact@v1
         with:
