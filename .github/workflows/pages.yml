@@ -17,7 +17,10 @@ jobs:
           override: true
           components: rustfmt, rust-src
       - name: Build Documentation
-        run: cargo +nightly doc --workspace --no-deps
+        run: |
+          # Needed for `enable-index-page` for workspace
+          RUSTDOCFLAGS="--enable-index-page -Zunstable-options" \
+            cargo +nightly doc --workspace --no-deps
       - name: Upload artifact to Pages
         uses: actions/upload-pages-artifact@v1
         with:
