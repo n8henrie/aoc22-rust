@@ -5,6 +5,8 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::{Rc, Weak};
 
+use std::ops::ControlFlow;
+
 const INPUT: &str = include_str!("../input.txt");
 
 #[derive(Clone, Debug, Default)]
@@ -224,6 +226,39 @@ impl Item {
             stack: vec![Rc::new(RefCell::new(self.clone()))],
         }
     }
+
+    fn try_for_each<T, F>(&self, predicate: &mut F) -> ControlFlow<T>
+    where
+        F: FnMut(&Self) -> ControlFlow<T>,
+    {
+        match self {
+            f @ Item::File(_) => predicate(f)?,
+            d @ Item::Dir(dir) => {
+                predicate(d)?;
+                for child in &dir.borrow().children {
+                    child.borrow().try_for_each(predicate)?;
+                }
+            }
+        }
+        ControlFlow::Continue(())
+    }
+
+    fn find_map<T, F>(&self, predicate: &mut F) -> Option<T>
+    where
+        F: FnMut(&Self) -> Option<T>,
+    {
+        let value = self.try_for_each(&mut |item| {
+            if let Some(value) = predicate(item) {
+                ControlFlow::Break(value)
+            } else {
+                ControlFlow::Continue(())
+            }
+        });
+        match value {
+            ControlFlow::Continue(()) => None,
+            ControlFlow::Break(value) => Some(value),
+        }
+    }
 }
 
 struct ItemIterator {
@@ -293,7 +328,7 @@ $ ls
 
     #[test]
     fn test_node_construction() {
-        let root = Dir::new("/", Default::default());
+        let root = Dir::new("/", Option::default());
         let child_file = File::new("foo", 7);
         let child_dir = Dir::new("bar", Some(Rc::downgrade(&root)));
 
@@ -327,7 +362,7 @@ $ ls
 
     #[test]
     fn test_abspath() {
-        let root = Dir::new("/", Default::default());
+        let root = Dir::new("/", Option::default());
         let child_dir = Dir::new("bar", Some(Rc::downgrade(&root)));
         let child_file = Rc::new(RefCell::new(Item::File(File::new("foo", 7))));
         let subdir_file = Rc::new(RefCell::new(Item::File(File::new("baz", 14))));
@@ -351,7 +386,7 @@ $ ls
 
     #[test]
     fn test_size() {
-        let root = Dir::new("/", Default::default());
+        let root = Dir::new("/", Option::default());
         let child_dir = Dir::new("bar", Some(Rc::downgrade(&root)));
         let child_file = Rc::new(RefCell::new(Item::File(File::new("foo", 7))));
         let subdir_file = Rc::new(RefCell::new(Item::File(File::new("baz", 14))));
@@ -379,6 +414,10 @@ $ ls
         assert_eq!(cwd.borrow().size(), 584);
     }
 
+    const ITER_RESULT: [&str; 14] = [
+        "/", "a", "e", "i", "f", "g", "h.lst", "b.txt", "c.dat", "d", "j", "d.log", "d.ext", "k",
+    ];
+
     #[test]
     fn test_parse_input() {
         const _OUTPUT: &str = "\
@@ -402,7 +441,7 @@ $ ls
 
     #[test]
     fn test_add_child() {
-        let root = Dir::new("/", Default::default());
+        let root = Dir::new("/", Option::default());
         let child_dir = Dir::new("bar", None);
         let child_file = Rc::new(RefCell::new(Item::File(File::new("foo", 7))));
         let subdir_file = Rc::new(RefCell::new(Item::File(File::new("baz", 14))));
@@ -422,7 +461,7 @@ $ ls
 
     #[test]
     fn test_cd() {
-        let root = Dir::new("/", Default::default());
+        let root = Dir::new("/", Option::default());
         let child_dir = Dir::new("bar", None);
         let child_file = Rc::new(RefCell::new(Item::File(File::new("foo", 7))));
         let subdir_file = Rc::new(RefCell::new(Item::File(File::new("baz", 14))));
@@ -453,20 +492,6 @@ $ ls
         assert_eq!(cwd.borrow().name, "/");
     }
 
-    // - / (dir)
-    //   - a (dir)
-    //     - e (dir)
-    //       - i (file, size=584)
-    //     - f (file, size=29116)
-    //     - g (file, size=2557)
-    //     - h.lst (file, size=62596)
-    //   - b.txt (file, size=14848514)
-    //   - c.dat (file, size=8504156)
-    //   - d (dir)
-    //     - j (file, size=4060174)
-    //     - d.log (file, size=8033020)
-    //     - d.ext (file, size=5626152)
-    //     - k (file, size=7214296)
     #[test]
     fn test_item_iter() {
         let parsed = parse_input(EXAMPLE_INPUT).unwrap();
@@ -486,11 +511,24 @@ $ ls
         assert_eq!(items.next().unwrap().borrow().name(), "d.log");
         assert_eq!(items.next().unwrap().borrow().name(), "d.ext");
         assert_eq!(items.next().unwrap().borrow().name(), "k");
+
+    #[test]
+    fn test_visit_with_iter() {
+        let parsed = parse_input(EXAMPLE_INPUT).unwrap();
+
+        let mut items = <Vec<String>>::new();
+        Item::Dir(parsed).find_map(&mut |i| {
+            items.push(i.name());
+            None::<()>
+        });
+
+        assert_eq!(items, ITER_RESULT);
     }
 
     #[test]
-    fn test_part1() {
-        assert_eq!(part1(EXAMPLE_INPUT, 100000).unwrap(), 95437);
+    fn test_part1_visitor() {
+        let root = Item::Dir(parse_input(EXAMPLE_INPUT).unwrap());
+        assert_eq!(part1(&root, 100_000), 95437);
     }
 
     #[test]
