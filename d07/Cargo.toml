@@ -7,3 +7,6 @@ edition = "2021"
 
 [dependencies]
 aoc = { workspace = true }
+
+[features]
+bench = []

@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "bench", feature(test))]
 #![warn(clippy::pedantic)]
 use aoc::{err, localpath, parse_input, Error, Result};
 
@@ -8,6 +9,136 @@ use std::rc::{Rc, Weak};
 use std::ops::ControlFlow;
 
 const INPUT: &str = include_str!("../input.txt");
+
+#[derive(Debug)]
+struct Arena(Vec<ArenaItem>);
+type ArenaIndex = usize;
+
+#[derive(Debug)]
+enum ArenaItem {
+    Dir(ArenaDir),
+    File(ArenaFile),
+}
+
+impl ArenaItem {
+    fn name(&self) -> &str {
+        match self {
+            ArenaItem::File(f) => &f.name,
+            ArenaItem::Dir(d) => &d.name,
+        }
+    }
+
+    fn set_parent(&mut self, parent_idx: ArenaIndex) {
+        match self {
+            ArenaItem::File(f) => f.parent = Some(parent_idx),
+            ArenaItem::Dir(d) => d.parent = Some(parent_idx),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ArenaDir {
+    parent: Option<ArenaIndex>,
+    children: Vec<ArenaIndex>,
+    name: String,
+}
+
+impl ArenaDir {
+    fn new(name: impl AsRef<str>) -> Self {
+        Self {
+            name: name.as_ref().to_string(),
+            parent: None,
+            children: Vec::new(),
+        }
+    }
+}
+
+impl From<ArenaDir> for ArenaItem {
+    fn from(dir: ArenaDir) -> Self {
+        ArenaItem::Dir(dir)
+    }
+}
+
+#[derive(Debug)]
+struct ArenaFile {
+    parent: Option<ArenaIndex>,
+    name: String,
+    size: u32,
+}
+
+impl ArenaFile {
+    fn new(name: impl AsRef<str>, size: u32) -> Self {
+        Self {
+            name: name.as_ref().to_string(),
+            parent: None,
+            size,
+        }
+    }
+}
+
+impl From<ArenaFile> for ArenaItem {
+    fn from(file: ArenaFile) -> Self {
+        ArenaItem::File(file)
+    }
+}
+
+impl Arena {
+    fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    fn add_item(&mut self, item: impl Into<ArenaItem>, parent: Option<ArenaIndex>) -> ArenaIndex {
+        let idx = self.0.len();
+        self.0.push(item.into());
+
+        if let Some(parent_idx) = parent {
+            self.0[idx].set_parent(parent_idx);
+
+            if let ArenaItem::Dir(ref mut dir) = self.0[parent_idx] {
+                dir.children.push(idx);
+            };
+        }
+        idx
+    }
+
+    fn at(&self, idx: ArenaIndex) -> &ArenaItem {
+        &self.0[idx]
+    }
+
+    fn dir_at(&self, idx: ArenaIndex) -> Result<&ArenaDir> {
+        if let ArenaItem::Dir(dir) = self.at(idx) {
+            Ok(dir)
+        } else {
+            Err(err!("ArenaItem at {idx} is not a dir"))
+        }
+    }
+
+    fn iter_indices(&self) -> impl Iterator<Item = ArenaIndex> + '_ {
+        let mut stack = vec![0];
+
+        std::iter::from_fn(move || {
+            let next = stack.pop()?;
+            match self.at(next) {
+                ArenaItem::Dir(dir) => {
+                    stack.extend(dir.children.iter().rev().clone());
+                    Some(next)
+                }
+                ArenaItem::File(_) => Some(next),
+            }
+        })
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &ArenaItem> {
+        self.iter_indices().map(|idx| self.at(idx))
+    }
+
+    fn size(&self, idx: ArenaIndex) -> u32 {
+        match self.at(idx) {
+            ArenaItem::Dir(d) => d.children.iter().map(|idx| self.size(*idx)).sum(),
+            ArenaItem::File(f) => f.size,
+        }
+    }
+}
 
 #[derive(Clone, Debug, Default)]
 struct Dir {
@@ -182,11 +313,59 @@ enum Item {
     File(Rc<RefCell<File>>),
 }
 
+fn parse_input_arena(input: &str) -> Result<Arena> {
+    let mut arena = Arena::new();
+    let mut cwd: Option<ArenaIndex> = None;
+    for line in input.lines() {
+        match line.split_whitespace().collect::<Vec<_>>().as_slice() {
+            ["$", "cd", "/"] => {
+                cwd = Some(arena.add_item(ArenaDir::new("/"), None));
+            }
+            ["$", "cd", dir] => {
+                let Some(ref mut cwd) = cwd else {
+                    return Err(err!("Attempt to cd while uninitialized"));
+                };
+
+                let cwd_dir = arena.dir_at(*cwd)?;
+
+                let target = if *dir == ".." {
+                    cwd_dir.parent.as_ref()
+                } else {
+                    cwd_dir
+                        .children
+                        .iter()
+                        .find(|idx| arena.at(**idx).name() == *dir)
+                }
+                .ok_or_else(|| err!("unable to find child for cd to {dir}"))?;
+
+                *cwd = *target;
+            }
+            ["$", "ls"] => (),
+            ["dir", name] => {
+                let Some(cwd) = cwd else {
+                    return Err(err!("Attempt to add a dir with no cwd"));
+                };
+                let dir = ArenaDir::new(name);
+                arena.add_item(dir, Some(cwd));
+            }
+            [num, name] if num.parse::<u32>().is_ok() => {
+                let Some(cwd) = cwd else {
+                    return Err(err!("Attempt to add a file with no cwd"));
+                };
+                let num = num.parse::<u32>().unwrap();
+                let file = ArenaFile::new(name, num);
+                arena.add_item(file, Some(cwd));
+            }
+            _ => return Err(err!("Unrecognized input: {}", line)),
+        }
+    }
+    Ok(arena)
+}
+
 fn parse_input(input: &str) -> Result<Rc<RefCell<Dir>>> {
     let mut root = None;
     let mut cwd: Option<Rc<RefCell<Dir>>> = None;
     for line in input.lines() {
-        dbg!(&line);
         match line.split_whitespace().collect::<Vec<_>>().as_slice() {
             ["$", "cd", "/"] => {
                 root = Some(Dir::root());
@@ -259,6 +438,15 @@ impl Item {
             ControlFlow::Break(value) => Some(value),
         }
     }
+
+    fn collect(&self) -> Vec<Self> {
+        let mut v = Vec::new();
+        self.find_map(&mut |node| {
+            v.push(node.clone());
+            None::<()>
+        });
+        v
+    }
 }
 
 struct ItemIterator {
@@ -279,27 +467,123 @@ impl Iterator for ItemIterator {
     }
 }
 
-fn part1(input: &str, size_limit: u32) -> Result<u32> {
-    let root = parse_input(input)?;
-
-    todo!()
+fn part1_arena(root: &Arena, size_limit: u32) -> u32 {
+    root.iter_indices()
+        .filter_map(|idx| {
+            let ArenaItem::Dir(_) = root.at(idx) else { return None };
+            let size = root.size(idx);
+            if size <= 100_000 {
+                Some(size)
+            } else {
+                None
+            }
+        })
+        .sum()
 }
 
-fn part2() -> Result<u32> {
-    todo!()
+fn part1_iter(root: &Item, size_limit: u32) -> u32 {
+    root.iter()
+        .filter_map(|i| match &*i.borrow() {
+            i @ Item::Dir(_) if i.size() < size_limit => Some(i.size()),
+            _ => None,
+        })
+        .sum::<u32>()
+}
+
+fn part1_internal_iter(root: &Item, size_limit: u32) -> u32 {
+    let mut sum = 0;
+    root.find_map(&mut |item| {
+        let Item::Dir(_) = item else { return None::<()> };
+        let size = item.size();
+        if size <= size_limit {
+            sum += size;
+        };
+        None::<()>
+    });
+    sum
+}
+
+fn part2_iter(root: &Item) -> Result<u32> {
+    let (fs_size, free_min) = (70_000_000, 30_000_000);
+    let used_space = root.size();
+
+    let currently_free = fs_size - used_space;
+    let needed = free_min - currently_free;
+
+    root.iter()
+        .filter_map(|item| match &*item.borrow() {
+            Item::Dir(d) if d.borrow().size() < needed => None,
+            Item::Dir(d) => Some(d.borrow().size()),
+            Item::File(_) => None,
+        })
+        .min()
+        .ok_or_else(|| err!("No sufficiently large directory found"))
+}
+
+fn part2_internal_iter(root: &Item) -> Result<u32> {
+    let (fs_size, free_min) = (70_000_000, 30_000_000);
+    let used_space = root.size();
+
+    let currently_free = fs_size - used_space;
+    let needed = free_min - currently_free;
+
+    let mut result: Option<u32> = None;
+    root.find_map(&mut |item| {
+        match item {
+            Item::Dir(d) if d.borrow().size() < needed => (),
+            Item::Dir(d) => {
+                let size = d.borrow().size();
+                let Some(smallest) = result else {
+                    result = Some(size);
+                    return None::<()>;
+                };
+                if size < smallest {
+                    result = Some(size);
+                };
+            }
+            Item::File(_) => (),
+        };
+        None
+    });
+    result.ok_or_else(|| err!("No sufficiently large directory found"))
+}
+
+fn part2_arena(arena: &Arena) -> Result<u32> {
+    let (fs_size, free_min) = (70_000_000, 30_000_000);
+    let used_space = arena.size(0);
+
+    let currently_free = fs_size - used_space;
+    let needed = free_min - currently_free;
+
+    arena
+        .iter_indices()
+        .filter_map(|idx| match arena.at(idx) {
+            ArenaItem::Dir(_) if arena.size(idx) < needed => None,
+            ArenaItem::Dir(_) => Some(arena.size(idx)),
+            ArenaItem::File(_) => None,
+        })
+        .min()
+        .ok_or_else(|| err!("No sufficiently large directory found"))
 }
 
 fn main() -> Result<()> {
-    // let input = parse_input!(localpath!("input.txt"))?;
-    // println!("day 07 part 1: {}", part1(&input)?);
-    // println!("day 07 part 2: {}", part2(&input)?);
+    let parsed = Item::Dir(parse_input(INPUT)?);
+
+    println!("day 07 part 1: {}", part1_iter(&parsed, 100_000));
+    println!("day 07 part 2: {}", part2_iter(&parsed)?);
+
+    // println!("day 07 part 1: {}", part1_internal_iter(&parsed, 100_000));
+    // println!("day 07 part 2: {}", part2_internal_iter(&parsed)?);
+
+    // let arena = parse_input_arena(include_str!("../input.txt"))?;
+    // println!("day 07 part 1: {}", part1_arena(&arena, 100_000));
+    // println!("day 07 part 2: {}", part2_arena(&arena)?);
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
     static EXAMPLE_INPUT: &str = "\
 $ cd /
 $ ls
@@ -404,13 +688,13 @@ $ ls
         let root = parse_input(EXAMPLE_INPUT).unwrap();
         let cwd = &mut root.clone();
         // root, a, d, e
-        assert_eq!(cwd.borrow().size(), 48381165);
-        Dir::cd(cwd, "d");
-        assert_eq!(cwd.borrow().size(), 24933642);
-        Dir::cd(cwd, "..");
-        Dir::cd(cwd, "a");
+        assert_eq!(cwd.borrow().size(), 48_381_165);
+        Dir::cd(cwd, "d").unwrap();
+        assert_eq!(cwd.borrow().size(), 24_933_642);
+        Dir::cd(cwd, "..").unwrap();
+        Dir::cd(cwd, "a").unwrap();
         assert_eq!(cwd.borrow().size(), 94853);
-        Dir::cd(cwd, "e");
+        Dir::cd(cwd, "e").unwrap();
         assert_eq!(cwd.borrow().size(), 584);
     }
 
@@ -436,7 +720,13 @@ $ ls
     - d.ext (file, size=5626152)
     - k (file, size=7214296)
 ";
-        parse_input(EXAMPLE_INPUT).unwrap();
+        let parsed = parse_input(EXAMPLE_INPUT).unwrap();
+        assert_eq!(parsed.borrow().name(), "/");
+        assert_eq!(parsed.borrow().children[0].borrow().name(), "a");
+        assert_eq!(
+            parsed.borrow().children.last().unwrap().borrow().name(),
+            "d"
+        );
     }
 
     #[test]
@@ -511,6 +801,7 @@ $ ls
         assert_eq!(items.next().unwrap().borrow().name(), "d.log");
         assert_eq!(items.next().unwrap().borrow().name(), "d.ext");
         assert_eq!(items.next().unwrap().borrow().name(), "k");
+    }
 
     #[test]
     fn test_visit_with_iter() {
@@ -526,13 +817,145 @@ $ ls
     }
 
     #[test]
-    fn test_part1_visitor() {
+    fn test_part1_iter() {
         let root = Item::Dir(parse_input(EXAMPLE_INPUT).unwrap());
-        assert_eq!(part1(&root, 100_000), 95437);
+        assert_eq!(part1_iter(&root, 100_000), 95437);
     }
 
     #[test]
-    fn test_part2() {
-        // assert!(false);
+    fn test_part1_internal_iter() {
+        let root = Item::Dir(parse_input(EXAMPLE_INPUT).unwrap());
+        assert_eq!(part1_internal_iter(&root, 100_000), 95437);
+    }
+
+    #[test]
+    fn test_parse_arena() {
+        let parsed = parse_input_arena(EXAMPLE_INPUT).unwrap();
+        assert_eq!(parsed.at(0).name(), "/");
+        assert_eq!(parsed.at(parsed.dir_at(0).unwrap().children[0]).name(), "a");
+        assert_eq!(
+            parsed
+                .at(*parsed.dir_at(0).unwrap().children.last().unwrap())
+                .name(),
+            "d"
+        );
+    }
+
+    #[test]
+    fn test_arena_iter() {
+        let parsed = parse_input_arena(EXAMPLE_INPUT).unwrap();
+        let result: Vec<_> = parsed.iter().map(ArenaItem::name).collect();
+        assert_eq!(result, ITER_RESULT);
+    }
+
+    #[test]
+    fn test_part1_arena() {
+        let parsed = parse_input_arena(EXAMPLE_INPUT).unwrap();
+        assert_eq!(part1_arena(&parsed, 100_000), 95437);
+    }
+
+    #[test]
+    fn test_part1_all_implementations() {
+        let my_part1_solution = 1_517_599;
+        let parsed = Item::Dir(parse_input(INPUT).unwrap());
+        assert_eq!(part1_iter(&parsed, 100_000), my_part1_solution);
+        assert_eq!(part1_internal_iter(&parsed, 100_000), my_part1_solution);
+        assert_eq!(
+            part1_arena(&parse_input_arena(INPUT).unwrap(), 100_000),
+            my_part1_solution
+        );
+    }
+
+    #[test]
+    fn test_part2_iter() {
+        let solution = 24_933_642;
+        let parsed = Item::Dir(parse_input(EXAMPLE_INPUT).unwrap());
+        assert_eq!(part2_iter(&parsed).unwrap(), solution);
+    }
+
+    #[test]
+    fn test_part2_internal_iter() {
+        let solution = 24_933_642;
+        let parsed = Item::Dir(parse_input(EXAMPLE_INPUT).unwrap());
+        assert_eq!(part2_internal_iter(&parsed).unwrap(), solution);
+    }
+
+    #[test]
+    fn test_part2_arena() {
+        let solution = 24_933_642;
+        let arena = parse_input_arena(EXAMPLE_INPUT).unwrap();
+        assert_eq!(part2_arena(&arena).unwrap(), solution);
+    }
+}
+
+#[cfg(feature = "bench")]
+mod benches {
+    extern crate test;
+    use super::*;
+    use test::{black_box, Bencher};
+
+    const PART1_SOLUTION: u32 = 1_517_599;
+    const PART2_SOLUTION: u32 = 2_481_982;
+
+    #[bench]
+    fn bench_parse(b: &mut Bencher) {
+        b.iter(|| {
+            let parsed = Item::Dir(parse_input(INPUT).unwrap());
+        })
+    }
+
+    #[bench]
+    fn bench_part1_iter(b: &mut Bencher) {
+        let parsed = Item::Dir(parse_input(INPUT).unwrap());
+        b.iter(|| {
+            assert_eq!(part1_iter(&parsed, 100_000), PART1_SOLUTION);
+        })
+    }
+
+    #[bench]
+    fn bench_part1_internal_iter(b: &mut Bencher) {
+        let parsed = Item::Dir(parse_input(INPUT).unwrap());
+        b.iter(|| {
+            assert_eq!(part1_internal_iter(&parsed, 100_000), PART1_SOLUTION);
+        })
+    }
+
+    #[bench]
+    fn bench_parse_arena(b: &mut Bencher) {
+        b.iter(|| {
+            let arena = parse_input_arena(INPUT).unwrap();
+        })
+    }
+
+    #[bench]
+    fn bench_part1_arena(b: &mut Bencher) {
+        let arena = parse_input_arena(INPUT).unwrap();
+        b.iter(|| {
+            assert_eq!(part1_arena(&arena, 100_000), PART1_SOLUTION);
+        })
+    }
+
+    #[bench]
+    fn bench_part2_iter(b: &mut Bencher) {
+        let parsed = Item::Dir(parse_input(INPUT).unwrap());
+        b.iter(|| {
+            assert_eq!(part2_iter(&parsed).unwrap(), PART2_SOLUTION);
+        })
+    }
+
+    #[bench]
+    fn bench_part2_internal_iter(b: &mut Bencher) {
+        let parsed = Item::Dir(parse_input(INPUT).unwrap());
+        b.iter(|| {
+            assert_eq!(part2_internal_iter(&parsed).unwrap(), PART2_SOLUTION);
+        })
+    }
+
+    #[bench]
+    fn bench_part2_arena(b: &mut Bencher) {
+        let arena = parse_input_arena(INPUT).unwrap();
+        b.iter(|| {
+            assert_eq!(part2_arena(&arena).unwrap(), PART2_SOLUTION);
+        })
     }
 }
