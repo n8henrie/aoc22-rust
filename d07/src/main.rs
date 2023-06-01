@@ -1,6 +1,7 @@
 #![cfg_attr(feature = "bench", feature(test))]
+#![allow(dead_code)]
 #![warn(clippy::pedantic)]
-use aoc::{err, localpath, parse_input, Error, Result};
+use aoc::{err, Result};
 
 use std::cell::RefCell;
 use std::path::PathBuf;
@@ -182,14 +183,14 @@ impl Dir {
     fn cd(from: &mut Rc<RefCell<Self>>, dir: impl AsRef<str>) -> Result<()> {
         match dir.as_ref() {
             "/" => {
-                let mut parent = from.borrow().parent.as_ref().and_then(|p| p.upgrade());
+                let mut parent = from.borrow().parent.as_ref().and_then(Weak::upgrade);
                 while let Some(p) = parent {
-                    parent = p.borrow().parent.as_ref().and_then(|p| p.upgrade());
+                    parent = p.borrow().parent.as_ref().and_then(Weak::upgrade);
                     if p.borrow().name == "/" {
                         return Ok(());
                     }
                 }
-                return Err(err!("Was not anchored to root"));
+                Err(err!("Was not anchored to root"))
             }
             ".." => {
                 if let Some(parent) = from.clone().borrow().parent() {
@@ -203,7 +204,7 @@ impl Dir {
                 }
             }
             dest => {
-                for child in from.clone().borrow().children.iter() {
+                for child in &from.clone().borrow().children {
                     if let Item::Dir(ref d) = *child.borrow() {
                         if d.borrow().name == dest {
                             *from = Rc::clone(d);
@@ -291,7 +292,7 @@ impl Child for Item {
 
 impl Child for Dir {
     fn parent(&self) -> Option<Rc<RefCell<Dir>>> {
-        self.parent.as_ref()?.upgrade().clone()
+        self.parent.as_ref()?.upgrade()
     }
     fn name(&self) -> String {
         self.name.to_string()
@@ -472,7 +473,7 @@ fn part1_arena(root: &Arena, size_limit: u32) -> u32 {
         .filter_map(|idx| {
             let ArenaItem::Dir(_) = root.at(idx) else { return None };
             let size = root.size(idx);
-            if size <= 100_000 {
+            if size <= size_limit {
                 Some(size)
             } else {
                 None
@@ -686,6 +687,8 @@ $ ls
         assert_eq!(child_file.borrow().size(), 7);
 
         let root = parse_input(EXAMPLE_INPUT).unwrap();
+
+        // Clone to prevent dropping the root
         let cwd = &mut root.clone();
         // root, a, d, e
         assert_eq!(cwd.borrow().size(), 48_381_165);
@@ -763,6 +766,7 @@ $ ls
         Dir::add_child(&root, &child_dir);
         assert!(child_dir.borrow().parent().is_some());
 
+        // Clone to prevent dropping the root
         let mut cwd = root.clone();
         assert_eq!(cwd.borrow().name, "/");
         assert!(cwd.borrow().parent().is_none());
@@ -892,7 +896,7 @@ $ ls
 mod benches {
     extern crate test;
     use super::*;
-    use test::{black_box, Bencher};
+    use test::Bencher;
 
     const PART1_SOLUTION: u32 = 1_517_599;
     const PART2_SOLUTION: u32 = 2_481_982;
@@ -900,7 +904,7 @@ mod benches {
     #[bench]
     fn bench_parse(b: &mut Bencher) {
         b.iter(|| {
-            let parsed = Item::Dir(parse_input(INPUT).unwrap());
+            let _parsed = Item::Dir(parse_input(INPUT).unwrap());
         })
     }
 
@@ -923,7 +927,7 @@ mod benches {
     #[bench]
     fn bench_parse_arena(b: &mut Bencher) {
         b.iter(|| {
-            let arena = parse_input_arena(INPUT).unwrap();
+            let _arena = parse_input_arena(INPUT).unwrap();
         })
     }
 
