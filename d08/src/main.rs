@@ -1,6 +1,6 @@
 #![warn(clippy::pedantic)]
 
-use aoc::{err, localpath, parse_input, Error, Result};
+use aoc::{err, Error, Result};
 use std::str::FromStr;
 
 const INPUT: &str = include_str!("../input.txt");
