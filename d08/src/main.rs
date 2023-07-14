@@ -130,7 +130,7 @@ macro_rules! get_score {
     ($obj:expr, $($dir:ident),+) => {{
         [
             $(
-                $obj.views.$dir.ok_or_else(|| err!("missing score"))
+                $obj.views.$dir.ok_or_else(|| $crate::err!("missing score"))
             ),*
         ].into_iter().collect::<$crate::Result<Vec<_>>>().map(|r| r.into_iter().map(|v| v as u32).product())
     }}
