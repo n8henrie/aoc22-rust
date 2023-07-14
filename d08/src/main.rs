@@ -49,9 +49,9 @@ impl Forest {
                         break;
                     }
                 }
-            }
-            if self.get_tree_mut((x, y))?.views.left.is_none() {
-                self.get_tree_mut((x, y))?.views.left = Some(x);
+                if self.get_tree_mut((x, y))?.views.left.is_none() {
+                    self.get_tree_mut((x, y))?.views.left = Some(x);
+                }
             }
 
             if x == (x_dim - 1) {
@@ -65,9 +65,9 @@ impl Forest {
                         break;
                     }
                 }
-            }
-            if self.get_tree_mut((x, y))?.views.right.is_none() {
-                self.get_tree_mut((x, y))?.views.right = Some(x_dim - x - 1);
+                if self.get_tree_mut((x, y))?.views.right.is_none() {
+                    self.get_tree_mut((x, y))?.views.right = Some(x_dim - x - 1);
+                }
             }
 
             if y == 0 {
@@ -81,9 +81,9 @@ impl Forest {
                         break;
                     }
                 }
-            }
-            if self.get_tree_mut((x, y))?.views.up.is_none() {
-                self.get_tree_mut((x, y))?.views.up = Some(y);
+                if self.get_tree_mut((x, y))?.views.up.is_none() {
+                    self.get_tree_mut((x, y))?.views.up = Some(y);
+                }
             }
 
             if y == (y_dim - 1) {
@@ -97,10 +97,9 @@ impl Forest {
                         break;
                     }
                 }
-            }
-
-            if self.get_tree_mut((x, y))?.views.down.is_none() {
-                self.get_tree_mut((x, y))?.views.down = Some(y_dim - y - 1);
+                if self.get_tree_mut((x, y))?.views.down.is_none() {
+                    self.get_tree_mut((x, y))?.views.down = Some(y_dim - y - 1);
+                }
             }
         }
         Ok(())
