@@ -1,4 +1,7 @@
-#!/usr/bin/env bash
+#!/usr/bin/env nix-shell
+#!nix-shell -i bash -p bash --pure
+#!nix-shell -p aoc-cli
+#!nix-shell -p cacert
 
 set -Eeuf -o pipefail
 shopt -s inherit_errexit
