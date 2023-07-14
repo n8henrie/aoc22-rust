@@ -49,8 +49,9 @@ impl Forest {
                         break;
                     }
                 }
-                if self.get_tree_mut((x, y))?.views.left.is_none() {
-                    self.get_tree_mut((x, y))?.views.left = Some(x);
+                let left = &mut self.get_tree_mut((x, y))?.views.left;
+                if left.is_none() {
+                    *left = Some(x);
                 }
             }
 
@@ -65,8 +66,9 @@ impl Forest {
                         break;
                     }
                 }
-                if self.get_tree_mut((x, y))?.views.right.is_none() {
-                    self.get_tree_mut((x, y))?.views.right = Some(x_dim - x - 1);
+                let right = &mut self.get_tree_mut((x, y))?.views.right;
+                if right.is_none() {
+                    *right = Some(x_dim - x - 1);
                 }
             }
 
@@ -81,8 +83,9 @@ impl Forest {
                         break;
                     }
                 }
-                if self.get_tree_mut((x, y))?.views.up.is_none() {
-                    self.get_tree_mut((x, y))?.views.up = Some(y);
+                let up = &mut self.get_tree_mut((x, y))?.views.up;
+                if up.is_none() {
+                    *up = Some(y);
                 }
             }
 
@@ -90,15 +93,16 @@ impl Forest {
                 self.get_tree_mut((x, y))?.views.down = Some(0);
             } else {
                 for dy in (y + 1)..y_dim {
-                    let down_tree = self.get_tree_mut((x, dy))?;
-                    if down_tree.height >= height {
+                    let down_tree = self.get_tree_mut((x, dy))?.height;
+                    if down_tree >= height {
                         let diff = dy - y;
                         self.get_tree_mut((x, y))?.views.down = Some(diff);
                         break;
                     }
                 }
-                if self.get_tree_mut((x, y))?.views.down.is_none() {
-                    self.get_tree_mut((x, y))?.views.down = Some(y_dim - y - 1);
+                let down = &mut self.get_tree_mut((x, y))?.views.down;
+                if down.is_none() {
+                    *down = Some(y_dim - y - 1);
                 }
             }
         }
